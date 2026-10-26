@@ -153,5 +153,35 @@ function renderSavings(){let deposits=savings.filter(x=>x.type==='deposit').redu
 function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 $('backup').onclick=()=>download(new Blob([JSON.stringify({tx,debt,savings},null,2)],{type:'application/json'}),'my-hisab-backup.json');$('restore').onclick=async()=>{let f=$('file').files[0];if(!f)return alert('Pehle backup file chuno');try{let d=JSON.parse(await f.text());if(!Array.isArray(d.tx)||!Array.isArray(d.debt))throw 0;if(!confirm('Current records replace ho jayenge. Continue?'))return;tx=d.tx;debt=d.debt;savings=Array.isArray(d.savings)?d.savings:[];save();render();renderSavings();alert('Backup restore ho gaya')}catch(e){alert('Backup file sahi nahi hai')}};
 $('clear').onclick=()=>{if(confirm('Saara data delete karna hai?')){tx=[];debt=[];savings=[];save();render();renderSavings()}};
+ 
+function renderAllRecords(){
+  const q = $('searchRecord').value.trim().toLowerCase();
+  const list = tx.filter(x =>
+    [x.title, x.cat, x.date, x.note, x.amt]
+      .some(v => String(v ?? '').toLowerCase().includes(q))
+  );
+
+  $('allRecords').innerHTML = list.length
+    ? list.slice().reverse().map(x => `
+      <div class="entry">
+        <div>
+          <b>${esc(x.title)}</b>
+          <div class="meta">${esc(x.date)} · ${esc(x.cat)}</div>
+        </div>
+        <b>${x.type === 'income' ? '+' : '−'}${money(x.amt)}</b>
+      </div>
+    `).join('')
+    : '<div class="empty">Koi record nahi mila.</div>';
+}
+
+$('searchRecord').addEventListener('input', renderAllRecords);
+
+const oldRender = render;
+render = function(){
+  oldRender();
+  renderAllRecords();
+};
+render();
+
 document.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{document.querySelectorAll('main>section').forEach(s=>s.classList.toggle('hidden',s.id!==b.dataset.page));document.querySelectorAll('[data-page]').forEach(x=>x.style.fontWeight=x===b?'bold':'normal');if(b.dataset.page==='report')report();if(b.dataset.page==='savings')renderSavings()});render();renderSavings();
 </script></body></html>
